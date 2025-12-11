@@ -1,0 +1,20 @@
+# python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# environment variables
+.env
+
+# virtual environment
+.venv/
+venv/
+ENV/
+
+# IDE settings
+.vscode/
+.idea/
+*.swp
+
+# macOS
+.DS_Store
