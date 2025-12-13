@@ -7,7 +7,6 @@ from supabase import create_client, Client
 from typing import Dict, Any
 
 load_dotenv()
-# test
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
 
@@ -105,4 +104,3 @@ def register_agent(payload: PushPayload, user_id: str = Depends(verify_token)):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
-    #test
