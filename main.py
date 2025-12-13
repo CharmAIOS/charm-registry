@@ -7,7 +7,7 @@ from supabase import create_client, Client
 from typing import Dict, Any
 
 load_dotenv()
-
+# test
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
 
