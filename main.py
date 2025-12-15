@@ -29,10 +29,6 @@ class PushPayload(BaseModel):
 
 
 async def verify_token(authorization: str = Header(...)):
-    """
-    驗證 Bearer Token 是否為有效的 UUID。
-    MVP 階段：直接將 Token 視為 User ID。
-    """
     if not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Invalid Auth Header")
     
