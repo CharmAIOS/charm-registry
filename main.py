@@ -33,13 +33,7 @@ async def verify_token(authorization: str = Header(...)):
         raise HTTPException(status_code=401, detail="Invalid Auth Header")
     
     token = authorization.split(" ")[1]
-
-    try:
-        uuid.UUID(token)
-    except ValueError:
-        raise HTTPException(status_code=401, detail="Token must be a valid UUID")
-    
-    return token
+    return token 
 
 
 @app.get("/")
@@ -55,7 +49,8 @@ def register_agent(payload: PushPayload, user_id: str = Depends(verify_token)):
     description = persona.get("description", "")
     version = uac.get("version", "0.0.1")
     
-    slug = f"{agent_name.lower().replace(' ', '-')}-{str(uuid.uuid4())[:8]}"
+    safe_name = agent_name.lower().strip().replace(' ', '-')
+    slug = f"{safe_name}-{user_id[:8]}"  
 
     try:
         agent_data = {
@@ -66,12 +61,27 @@ def register_agent(payload: PushPayload, user_id: str = Depends(verify_token)):
             "is_public": True
         }
         
-        res_agent = supabase.table("agents").insert(agent_data).execute()
+        existing_agent = supabase.table("agents").select("id").eq("slug", slug).execute()
         
-        if not res_agent.data:
-            raise HTTPException(status_code=500, detail="Failed to create agent record")
+        agent_id = None
+        
+        if existing_agent.data and len(existing_agent.data) > 0:
+            print(f"Agent exists ({slug}), updating metadata...")
+            agent_id = existing_agent.data[0]["id"]
             
-        agent_id = res_agent.data[0]["id"]
+            supabase.table("agents").update({
+                "name": agent_name,
+                "description": description
+            }).eq("id", agent_id).execute()
+            
+        else:
+            print(f"Creating new Agent ({slug})...")
+            res_agent = supabase.table("agents").insert(agent_data).execute()
+            
+            if not res_agent.data:
+                raise HTTPException(status_code=500, detail="Failed to create agent record")
+            
+            agent_id = res_agent.data[0]["id"]
         
         version_data = {
             "agent_id": agent_id,
@@ -82,20 +92,26 @@ def register_agent(payload: PushPayload, user_id: str = Depends(verify_token)):
             "branch": payload.repo.branch
         }
         
-        supabase.table("versions").insert(version_data).execute()
+        try:
+            supabase.table("versions").insert(version_data).execute()
+        except Exception as e:
+            if "duplicate key" in str(e) or "unique constraint" in str(e):
+                print(f"Version {version} already exists. Updating...")
+                supabase.table("versions").update(version_data).eq("agent_id", agent_id).eq("version", version).execute()
+            else:
+                raise e
         
         return {
             "status": "published",
             "agent_id": agent_id,
             "slug": slug,
+            "version": version,
             "url": f"https://charm.ai/agents/{slug}" 
         }
 
     except Exception as e:
         print(f"Database Error: {e}")
-        if "duplicate key" in str(e):
-             raise HTTPException(status_code=409, detail="Version already exists")
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn
