@@ -50,6 +50,10 @@ def register_agent(payload: PushPayload, user_id: str = Depends(verify_token)):
     version = uac.get("version", "0.0.1")
     
     safe_name = agent_name.lower().strip().replace(' ', '-')
+
+    if not safe_name:
+        safe_name = "agent"
+        
     slug = f"{safe_name}-{user_id[:8]}"  
 
     try:
